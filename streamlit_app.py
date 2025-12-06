@@ -109,39 +109,78 @@ st.markdown("""
     header {visibility: hidden;}
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
+    
+    /* BTC Panel Animation */
+    .btc-panel-glow {
+        background: linear-gradient(135deg, rgba(255, 0, 0, 0.15) 0%, rgba(139, 0, 0, 0.25) 100%);
+        border: 2px solid rgba(255, 0, 0, 0.6);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 0 40px rgba(255, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+        animation: btc-pulse 3s infinite;
+    }
+    
+    @keyframes btc-pulse {
+        0% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.4); }
+        50% { box-shadow: 0 0 60px rgba(255, 0, 0, 0.6); }
+        100% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.4); }
+    }
+    
+    .btc-panel-glow::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255, 0, 0, 0.1), transparent);
+        animation: shine 3s infinite linear;
+    }
+    
+    @keyframes shine {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
 </style>
 
 <div class="war-room-grid"></div>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SESSION STATE INITIALIZATION
+# INITIALIZE SESSION STATE
 # ============================================================================
 def initialize_session_state():
     """Initialize all session state variables"""
+    # Define default coins
+    coins = {
+        'BTC': {'symbol': 'BTCUSDT', 'name': 'BITCOIN', 'emoji': '🐲'},
+        'ETH': {'symbol': 'ETHUSDT', 'name': 'ETHEREUM', 'emoji': '🔥'},
+        'SUI': {'symbol': 'SUIUSDT', 'name': 'SUI', 'emoji': '💧'},
+        'LINK': {'symbol': 'LINKUSDT', 'name': 'CHAINLINK', 'emoji': '🔗'},
+        'SOL': {'symbol': 'SOLUSDT', 'name': 'SOLANA', 'emoji': '⚡'},
+        'XRP': {'symbol': 'XRPUSDT', 'name': 'RIPPLE', 'emoji': '✖️'},
+        'TAO': {'symbol': 'TAOUSDT', 'name': 'TAO', 'emoji': '🧠'},
+        'ENA': {'symbol': 'ENAUSDT', 'name': 'ENA', 'emoji': '🌀'},
+        'ADA': {'symbol': 'ADAUSDT', 'name': 'CARDANO', 'emoji': '🔷'},
+        'DOGE': {'symbol': 'DOGEUSDT', 'name': 'DOGECOIN', 'emoji': '🐕'},
+        'BRETT': {'symbol': 'BRETTUSDT', 'name': 'BRETT', 'emoji': '🤖'}
+    }
+    
+    # Initialize session state with proper defaults
     if 'initialized' not in st.session_state:
         st.session_state.initialized = True
         st.session_state.data_fetcher = CryptoDataFetcher()
         st.session_state.state_manager = StateManager()
         st.session_state.signal_calculator = SignalCalculator()
         st.session_state.last_update = None
-        st.session_state.signals = {}
+        st.session_state.signals = {}  # Initialize empty signals dict
         st.session_state.error = None
         st.session_state.auto_refresh = True
         st.session_state.refresh_interval = 15  # seconds
-        st.session_state.coins = {
-            'BTC': {'symbol': 'BTCUSDT', 'name': 'BITCOIN', 'emoji': '🐲'},
-            'ETH': {'symbol': 'ETHUSDT', 'name': 'ETHEREUM', 'emoji': '🔥'},
-            'SUI': {'symbol': 'SUIUSDT', 'name': 'SUI', 'emoji': '💧'},
-            'LINK': {'symbol': 'LINKUSDT', 'name': 'CHAINLINK', 'emoji': '🔗'},
-            'SOL': {'symbol': 'SOLUSDT', 'name': 'SOLANA', 'emoji': '⚡'},
-            'XRP': {'symbol': 'XRPUSDT', 'name': 'RIPPLE', 'emoji': '✖️'},
-            'TAO': {'symbol': 'TAOUSDT', 'name': 'TAO', 'emoji': '🧠'},
-            'ENA': {'symbol': 'ENAUSDT', 'name': 'ENA', 'emoji': '🌀'},
-            'ADA': {'symbol': 'ADAUSDT', 'name': 'CARDANO', 'emoji': '🔷'},
-            'DOGE': {'symbol': 'DOGEUSDT', 'name': 'DOGECOIN', 'emoji': '🐕'},
-            'BRETT': {'symbol': 'BRETTUSDT', 'name': 'BRETT', 'emoji': '🤖'}
-        }
+        st.session_state.coins = coins
 
 # ============================================================================
 # DATA REFRESH FUNCTION
@@ -184,7 +223,8 @@ def refresh_all_data():
             order_book = st.session_state.data_fetcher.fetch_order_book(symbol)
             
             if not price_data or not order_book:
-                continue  # Skip if data fetch failed
+                # Log internally but continue with other coins
+                continue
             
             # Calculate mid price
             mid_price = (order_book['best_bid'] + order_book['best_ask']) / 2
@@ -249,8 +289,127 @@ def refresh_all_data():
         
     except Exception as e:
         # Log error internally, show user-friendly message
-        st.session_state.error = f"System error: {str(e)[:50]}..."
+        st.session_state.error = f"System error: Data refresh failed"
         return False
+
+# ============================================================================
+# RENDER BTC PANEL (Simplified - No custom CSS needed)
+# ============================================================================
+def render_btc_panel_simple(signal_data):
+    """Render BTC panel with simplified styling"""
+    # Determine styling based on signal
+    if signal_data['signal'] == 'BUY':
+        price_color = "#00ff00"
+        signal_text = "🐲 DRAGON FIRE BUY 🐲"
+        border_color = "#00ff00"
+    elif signal_data['signal'] == 'SELL':
+        price_color = "#ff0000"
+        signal_text = "💀 GODZILLA SELL 💀"
+        border_color = "#ff0000"
+    else:
+        price_color = "#ffa500"
+        signal_text = "⚡ MARKET NEUTRAL ⚡"
+        border_color = "#ffa500"
+    
+    st.markdown(f'''
+    <div class="btc-panel-glow">
+        <div style="position: relative; z-index: 2;">
+            <div style="text-align: center;">
+                <p style="color: #ff8888; font-family: Rajdhani; margin-bottom: 0.5rem; font-size: 1.1rem;">
+                    BITCOIN (BTC/USDT)
+                </p>
+                <p style="font-family: Orbitron; font-size: 3.5rem; font-weight: 900; 
+                   color: {price_color}; margin: 0.5rem 0; text-shadow: 0 0 20px {price_color}80;">
+                   ${signal_data['current_price']:,.2f}
+                </p>
+                <p style="font-family: Orbitron; font-size: 1.8rem; margin: 1rem 0; color: {price_color};">
+                    {signal_text}
+                </p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem;">
+                <div style="text-align: center;">
+                    <p style="color: #ff8888; font-family: Rajdhani; margin: 0;">CONFIDENCE</p>
+                    <p style="font-family: Orbitron; font-size: 1.5rem; color: {price_color}; margin: 0.2rem 0;">
+                        {signal_data['confidence']}%
+                    </p>
+                    <div style="background: #333; height: 8px; border-radius: 4px; margin-top: 0.5rem;">
+                        <div style="background: {price_color}; height: 100%; width: {signal_data['confidence']}%; border-radius: 4px;"></div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center;">
+                    <p style="color: #ff8888; font-family: Rajdhani; margin: 0;">MID PRICE</p>
+                    <p style="font-family: Orbitron; font-size: 1.5rem; color: #ffffff; margin: 0.2rem 0;">
+                        ${signal_data['mid_price']:,.2f}
+                    </p>
+                </div>
+                
+                <div style="text-align: center;">
+                    <p style="color: #ff8888; font-family: Rajdhani; margin: 0;">STATUS</p>
+                    <p style="font-family: Orbitron; font-size: 1.5rem; color: #00ff00; margin: 0.2rem 0;">
+                        🔥 LIVE
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+# ============================================================================
+# RENDER SIGNAL CARD (Simplified)
+# ============================================================================
+def render_signal_card_simple(signal_data):
+    """Render signal card for altcoins with simplified styling"""
+    if signal_data['signal'] == 'BUY':
+        bg_gradient = "linear-gradient(135deg, rgba(0, 255, 0, 0.1) 0%, rgba(0, 100, 0, 0.3) 100%)"
+        border_color = "#00ff00"
+        text_color = "#00ff00"
+        signal_emoji = "🟢"
+    else:  # SELL
+        bg_gradient = "linear-gradient(135deg, rgba(255, 0, 0, 0.15) 0%, rgba(100, 0, 0, 0.3) 100%)"
+        border_color = "#ff0000"
+        text_color = "#ff0000"
+        signal_emoji = "🔴"
+    
+    st.markdown(f'''
+    <div style="background: {bg_gradient}; 
+                border: 2px solid {border_color}; 
+                border-radius: 15px; 
+                padding: 1.5rem; 
+                margin: 1rem 0;
+                animation: pulse 2s infinite;
+                box-shadow: 0 0 20px {border_color}80;">
+        <div style="text-align: center;">
+            <h3 style="font-family: Orbitron; margin: 0.5rem 0; font-size: 1.3rem; color: {text_color};">
+                {signal_data['emoji']} {signal_data['name']} {signal_emoji}
+            </h3>
+            <p style="font-family: Orbitron; font-size: 1.8rem; font-weight: 700; margin: 0.5rem 0; color: #ffffff;">
+                ${signal_data['current_price']:,.2f}
+            </p>
+            <p style="font-family: Orbitron; font-size: 1.3rem; margin: 0.5rem 0; color: {text_color};">
+                {signal_data['signal']} SIGNAL
+            </p>
+            
+            <!-- Confidence bar -->
+            <div style="margin: 1rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                    <span style="color: #ff8888; font-family: Rajdhani; font-size: 0.9rem;">CONFIDENCE</span>
+                    <span style="color: {text_color}; font-family: Orbitron; font-size: 0.9rem;">
+                        {signal_data['confidence']}%
+                    </span>
+                </div>
+                <div style="background: #333; height: 6px; border-radius: 3px;">
+                    <div style="background: {text_color}; height: 100%; width: {signal_data['confidence']}%; border-radius: 3px;"></div>
+                </div>
+            </div>
+            
+            <p style="color: #ff8888; font-family: Rajdhani; font-size: 0.8rem; margin: 0.5rem 0 0 0;">
+                {signal_data['coin_key']}
+            </p>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
 
 # ============================================================================
 # MAIN APPLICATION
@@ -258,11 +417,12 @@ def refresh_all_data():
 def main():
     """Main application function"""
     
-    # Initialize session state
+    # Initialize session state FIRST
     initialize_session_state()
     
     # Render header
-    render_header()
+    st.markdown('<h1 class="godzillers-header">🔥 GODZILLERS CRYPTO TRACKER</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="godzillers-subheader">DRAGON\'S LAIR WAR ROOM • HIDDEN ANALYTICS • ACTIVE SIGNALS ONLY</p>', unsafe_allow_html=True)
     
     # CONTROL PANEL
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
@@ -302,14 +462,46 @@ def main():
     
     # ERROR DISPLAY
     if st.session_state.error:
-        render_error_card(st.session_state.error)
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, rgba(255, 0, 0, 0.1) 0%, rgba(100, 0, 0, 0.2) 100%);
+                    border: 1px solid #ff4444;
+                    border-radius: 10px;
+                    padding: 1.5rem;
+                    margin: 1rem 0;
+                    text-align: center;">
+            <p style="font-family: Orbitron; color: #ff4444; font-size: 1.2rem; margin: 0 0 0.5rem 0;">
+                ⚠️ SYSTEM ALERT
+            </p>
+            <p style="font-family: Rajdhani; color: #ff8888; margin: 0;">
+                {st.session_state.error}
+            </p>
+            <p style="font-family: Rajdhani; color: #ff6666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+                Retrying automatically...
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
     
     # BTC SECTION - ALWAYS VISIBLE
+    st.markdown('<h2 style="font-family: Orbitron; color: #ff4444; margin: 1rem 0;">🐲 BITCOIN COMMAND CENTER</h2>', unsafe_allow_html=True)
+    
+    # Check if BTC signal exists, otherwise create default
     btc_signal = st.session_state.signals.get('BTCUSDT')
-    if btc_signal:
-        render_btc_panel(btc_signal)
+    if not btc_signal:
+        # Create a default BTC display
+        btc_signal = {
+            'signal': 'NEUTRAL',
+            'confidence': 50,
+            'current_price': 0.00,
+            'mid_price': 0.00,
+            'coin_key': 'BTC',
+            'name': 'BITCOIN',
+            'emoji': '🐲'
+        }
+    
+    # Render BTC panel
+    render_btc_panel_simple(btc_signal)
     
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
     
@@ -319,7 +511,7 @@ def main():
     # Filter for active altcoin signals (BUY/SELL only, exclude BTC and NEUTRAL)
     active_altcoins = {}
     for symbol, signal_data in st.session_state.signals.items():
-        if symbol != 'BTCUSDT' and signal_data['signal'] in ['BUY', 'SELL']:
+        if symbol != 'BTCUSDT' and signal_data.get('signal', 'NEUTRAL') in ['BUY', 'SELL']:
             active_altcoins[symbol] = signal_data
     
     if active_altcoins:
@@ -335,7 +527,7 @@ def main():
             
             for j, signal_data in enumerate(row_items):
                 with cols[j]:
-                    render_signal_card(signal_data)
+                    render_signal_card_simple(signal_data)
     else:
         # No active altcoin signals
         st.markdown('''
@@ -346,7 +538,26 @@ def main():
         ''', unsafe_allow_html=True)
     
     # FOOTER
-    render_footer(st.session_state.last_update)
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    
+    update_time = "Never" if not st.session_state.last_update else st.session_state.last_update.strftime("%H:%M:%S")
+    
+    st.markdown(f"""
+    <div style="text-align: center; margin: 2rem 0;">
+        <p style="color: #ff6666; font-family: Rajdhani; font-size: 0.9rem; margin: 0.5rem 0;">
+            <span style="display: inline-block; width: 10px; height: 10px; 
+                   background-color: #00ff00; border-radius: 50%; 
+                   margin-right: 8px; animation: pulse 2s infinite;"></span>
+            Last Update: {update_time}
+        </p>
+        <p style="color: #ff4444; font-family: Orbitron; font-size: 0.8rem; letter-spacing: 1px; margin: 0.5rem 0;">
+            🔥 GODZILLERS CRYPTO WARFARE SYSTEM 🔥
+        </p>
+        <p style="color: #ff6666; font-family: Rajdhani; font-size: 0.7rem; margin: 0.5rem 0;">
+            Dragon's Lair War Room • Hidden Analytics • Active Signals Only
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # AUTO-REFRESH LOGIC
     if st.session_state.auto_refresh and not st.session_state.error:
@@ -358,10 +569,10 @@ def main():
 # APPLICATION ENTRY POINT
 # ============================================================================
 if __name__ == "__main__":
-    # Initial data refresh on first load
-    if not st.session_state.signals:
-        with st.spinner("Initializing Dragon's Lair War Room..."):
-            refresh_all_data()
-    
-    # Run main application
-    main()
+    try:
+        # Initialize and run
+        main()
+    except Exception as e:
+        # Catch any unhandled exceptions and show user-friendly error
+        st.error("Application encountered an error. Please refresh the page.")
+        st.info("If the error persists, check your internet connection and API access.")
